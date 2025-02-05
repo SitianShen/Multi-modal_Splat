@@ -1,0 +1,9 @@
+open-clip-torch
+tqdm
+opencv-python
+tensorboard
+jaxtyping
+matplotlib
+typing
+pathlib
+
