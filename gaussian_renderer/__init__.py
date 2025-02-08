@@ -44,10 +44,12 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
         viewmatrix=viewpoint_camera.world_view_transform,
         projmatrix=viewpoint_camera.full_proj_transform,
         sh_degree=pc.active_sh_degree,
+        ish_degree=pc.active_ish_degree,
         campos=viewpoint_camera.camera_center,
         prefiltered=False,
         debug=pipe.debug,
         include_feature=opt.include_feature,
+        include_intensity=opt.include_intensity
     )
 
     rasterizer = GaussianRasterizer(raster_settings=raster_settings)
@@ -83,33 +85,40 @@ def render(viewpoint_camera, pc : GaussianModel, pipe, bg_color : torch.Tensor, 
     else:
         colors_precomp = override_color
 
+    if opt.include_intensity:
+        intensity_precomp = pc.get_intensity
+
     if opt.include_feature:
         language_feature_precomp = pc.get_language_feature
         language_feature_precomp = language_feature_precomp/ (language_feature_precomp.norm(dim=-1, keepdim=True) + 1e-9)
         # language_feature_precomp = torch.sigmoid(language_feature_precomp)
+        # print("language_feature_precomp_mean", language_feature_precomp.mean())
     else:
         language_feature_precomp = torch.zeros((1,), dtype=opacity.dtype, device=opacity.device)
         
     # Rasterize visible Gaussians to image, obtain their radii (on screen). 
     # start_time = time.time()
 
-    rendered_image, language_feature_image, radii = rasterizer(
+    rendered_image, radii, depth_image, rendered_acc, rendered_semantic = rasterizer(
         means3D = means3D,
         means2D = means2D,
         shs = shs,
         colors_precomp = colors_precomp,
-        language_feature_precomp = language_feature_precomp,
+        semantics = language_feature_precomp,
         opacities = opacity,
         scales = scales,
         rotations = rotations,
         cov3D_precomp = cov3D_precomp)
+    # print("rendered_semantic_mean", rendered_semantic.mean())
     # end_time = time.time()
     # print('render_init_rasterizer程序运行时间为: %s Seconds'%(end_time-start_time))
     # Those Gaussians that were frustum culled or had a radius of 0 were not visible.
     # They will be excluded from value updates used in the splitting criteria.
     
     return {"render": rendered_image,
-            "language_feature_image": language_feature_image,
+            "acc": rendered_acc,
+            "depth": depth_image,
+            "language_feature_image": rendered_semantic,
             "viewspace_points": screenspace_points,
             "visibility_filter" : radii > 0,
             "radii": radii}

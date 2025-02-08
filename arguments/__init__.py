@@ -47,6 +47,7 @@ class ParamGroup:
 class ModelParams(ParamGroup): 
     def __init__(self, parser, sentinel=False):
         self.sh_degree = 3
+        self.ish_degree = 3
         self._source_path = ""
         self._model_path = "" 
         self._language_features_name = "language_features_dim3"
@@ -81,7 +82,8 @@ class OptimizationParams(ParamGroup):
         self.feature_lr = 0.0025
         self.opacity_lr = 0.05
         self.language_feature_lr = 0.0025 # TODO: update
-        self.include_feature = True # Set to False if train the original gs
+        self.include_feature = False # Set to False if train the original gs
+        self.include_intensity = True
         self.scaling_lr = 0.005
         self.rotation_lr = 0.001
         self.percent_dense = 0.01
